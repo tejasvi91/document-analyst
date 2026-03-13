@@ -29,10 +29,9 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Choose a PDF", type="pdf")
 
     if uploaded_file:
-        # Only re-extract if a NEW file is uploaded
+        # Only extract if this is a NEW file
         if uploaded_file.name != st.session_state.last_uploaded:
             pdf_bytes = uploaded_file.read()
-
             with st.spinner("Extracting content..."):
                 st.session_state.extracted = extract_all(pdf_bytes)
                 st.session_state.chat_history = []
@@ -101,7 +100,7 @@ else:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-        # Chat input — only triggers once per submission
+        # Chat input
         question = st.chat_input("Ask anything about the document...")
 
         if question:

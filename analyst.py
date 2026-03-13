@@ -1,13 +1,19 @@
 from openai import OpenAI
-from dotenv import load_dotenv
+import streamlit as st
 import os
 
-load_dotenv()
+# Works both locally (.env) and on Streamlit Cloud (secrets)
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=api_key)
 
-SYSTEM_PROMPT = """You are an expert document analyst. You are given extracted 
-content from a PDF document including text and tables. Your job is to answer 
+SYSTEM_PROMPT = """You are an expert document analyst. You are given extracted
+content from a PDF document including text and tables. Your job is to answer
 questions about the document clearly and accurately.
 
 Rules:
@@ -23,7 +29,7 @@ def format_tables_as_text(tables: list) -> str:
     """Convert extracted tables into readable text for the prompt."""
     if not tables:
         return ""
-    
+
     result = "\n\n--- TABLES FOUND IN DOCUMENT ---\n"
     for i, table in enumerate(tables):
         result += f"\nTable {i+1} (Page {table['page']}):\n"
@@ -48,10 +54,10 @@ def build_context(extracted: dict, max_chars: int = 100000) -> str:
 
 
 def ask_question(question: str, extracted: dict, chat_history: list) -> str:
-    """Send question + document context to GPT-4o and stream the answer."""
+    """Send question + document context to GPT-4o and return the answer."""
     context = build_context(extracted)
 
-    # Build messages list
+    # Build messages list — context sent only once at the start
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Here is the document content:\n\n{context}"},
@@ -65,23 +71,14 @@ def ask_question(question: str, extracted: dict, chat_history: list) -> str:
     # Add current question
     messages.append({"role": "user", "content": question})
 
-    # Stream the response
-    stream = client.chat.completions.create(
+    # Get response (no streaming to avoid duplicate output in Streamlit)
+    response = client.chat.completions.create(
         model="gpt-4o",
         messages=messages,
-        max_tokens=1000,
-        stream=True
+        max_tokens=1000
     )
 
-    full_response = ""
-    for chunk in stream:
-        if chunk.choices[0].delta.content:
-            content = chunk.choices[0].delta.content
-            full_response += content
-            print(content, end="", flush=True)
-
-    print()  # newline after streamed response
-    return full_response
+    return response.choices[0].message.content
 
 
 def summarise_document(extracted: dict) -> str:
@@ -98,4 +95,3 @@ def summarise_document(extracted: dict) -> str:
     )
 
     return response.choices[0].message.content
-
