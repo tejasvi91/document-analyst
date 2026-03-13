@@ -1,4 +1,6 @@
-echo ".env" > .gitignore
-echo "venv/" >> .gitignore
-echo "uploads/" >> .gitignore
-echo "__pycache__/" >> .gitignore
+.env
+venv/
+uploads/
+__pycache__/
+.streamlit/secrets.toml
+sample.pdf
